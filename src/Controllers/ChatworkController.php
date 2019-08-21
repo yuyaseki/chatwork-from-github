@@ -39,8 +39,6 @@ class ChatworkController {
 
     private static function pushChatwork($arr, $logger) {
 
-        return true;
-
         global $app;
         $container = $app->getContainer();
         $settings = $container->get('settings')['chatwork'];
@@ -48,7 +46,10 @@ class ChatworkController {
         $token = $settings["token"];
         $room_id = $settings["room_id"];
 
-        $message = "test";
+        ob_start();
+	    var_dump($arr);
+	    $message = ob_get_contents();
+	    ob_end_clean();
 
         $query = http_build_query([
             "body" => $message,
