@@ -21,7 +21,15 @@ class ChatworkController {
         $logger = new \Monolog\Logger($settings["name"]);
         $logger->pushHandler($stream);
 
-        $logger->addDebug(print_r($settings, true));
+        $logger->addInfo("***************************************");
+        $logger->addInfo("***************************************");
+
+        $tmp = $request->getHeaders();
+        $headers = [];
+        foreach ($tmp as $name => $values) {
+            $logger->addInfo($name . ": " . implode(", ", $values));
+            $headers[$name] = implode(", ", $values);
+        }
 
 	    $arr = json_decode($request->getBody(), true);
         ob_start();
@@ -30,14 +38,14 @@ class ChatworkController {
 	    ob_end_clean();
         $logger->addInfo($data);
 
-        self::pushChatwork($arr, $logger);
+        self::pushChatwork($headers, $arr, $logger);
 
         $response->getBody()->write(json_encode(["success"]));
 
         return $response;
     }
 
-    private static function pushChatwork($arr, $logger) {
+    private static function pushChatwork($headers, $data, $logger) {
 
         global $app;
         $container = $app->getContainer();
@@ -46,9 +54,22 @@ class ChatworkController {
         $token = $settings["token"];
         $room_id = $settings["room_id"];
 
+        $message = "お試し中です\n\n";
+        if(trim($headers["X-Github-Event"]) == "push") {
+        } else if(trim($headers["X-Github-Event"]) == "create") {
+        } else if(trim($headers["X-Github-Event"]) == "delete") {
+        } else if(trim($headers["X-Github-Event"]) == "pull_request") {
+        } else if(trim($headers["X-Github-Event"]) == "pull_request_review") {
+        } else if(trim($headers["X-Github-Event"]) == "pull_request_review_comment") {
+        } else if(trim($headers["X-Github-Event"]) == "ping") {
+            $logger->addInfo("ping");
+        } else {
+            return true;
+        }
+
         ob_start();
-	    var_dump($arr);
-	    $message = ob_get_contents();
+	    var_dump($data);
+	    $message = $message . ob_get_contents();
 	    ob_end_clean();
 
         $query = http_build_query([
