@@ -120,6 +120,22 @@ class ChatworkController {
                                 . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
                                 . $data["pull_request"]["html_url"] . "\n"
                                 . "[/info]";
+        //pull_request_review_comment
+        } else if(trim($headers["X-Github-Event"]) == "pull_request_review_comment") {
+            $message = $message . "[Pull Request Review Comment]\n"
+                                . $data["action"] . "\n"
+                                . "[info]"
+                                . "Pull Request Review Comment " . $data["action"] . " by " . $data["comment"]["user"]["login"] . "\n"
+                                . "\n"
+                                . $data["comment"]["body"] . "\n"
+                                . $data["comment"]["html_url"] . "\n"
+                                . "\n"
+                                . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
+                                . $data["comment"]["html_url"] . "\n"
+                                . "[/info]"
+                                . "[code]"
+                                . $data["comment"]["diff_hunk"]
+                                . "[/code]";
         //gollum
         } else if(trim($headers["X-Github-Event"]) == "gollum") {
             $message = $message . "[Gollum]\n"
