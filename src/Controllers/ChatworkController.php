@@ -54,23 +54,70 @@ class ChatworkController {
         $token = $settings["token"];
         $room_id = $settings["room_id"];
 
-        $message = "お試し中です\n\n";
-        if(trim($headers["X-Github-Event"]) == "push") {
-        } else if(trim($headers["X-Github-Event"]) == "create") {
-        } else if(trim($headers["X-Github-Event"]) == "delete") {
-        } else if(trim($headers["X-Github-Event"]) == "pull_request") {
-        } else if(trim($headers["X-Github-Event"]) == "pull_request_review") {
-        } else if(trim($headers["X-Github-Event"]) == "pull_request_review_comment") {
-        } else if(trim($headers["X-Github-Event"]) == "ping") {
-            $logger->addInfo("ping");
-        } else {
-            return true;
-        }
+        $message = "[toall]\n";
+        $message = $message . "お試し中です\n\n";
+        $message = $message . "push, create, delete, pull_request, pull_request_reviewは必要だと思われる詳細を表示しています．それ以外のEventについては，現在Event名のみ記載しています．今後変更の可能性あり．\n\n";
 
-        ob_start();
-	    var_dump($data);
-	    $message = $message . ob_get_contents();
-	    ob_end_clean();
+        //push
+        if(trim($headers["X-Github-Event"]) == "push") {
+            $message = $message . "[Push]\n";
+            $message = $message . "[info]"
+                                . "Push by " . $data["sender"]["login"] . ".\n"
+                                . "git ref:   " . $data["ref"] . "\n"
+                                . "Compare:   " . $data["compare"] . "\n"
+                                . "[/info]";
+        //create
+        } else if(trim($headers["X-Github-Event"]) == "create") {
+            $url = $data["repository"]["html_url"] . "/tree/" . $data["ref"];
+            $message = $message . "[" . $data["ref_type"] == "branch" ? "Branch" : "Tag" . " was created]\n";
+            $message = $message . "[info]"
+                                . $data["ref"] . " was created by " . $data["sender"]["login"] . ".\n"
+                                . "git ref:   " . $data["ref"] . "\n"
+                                . "URL:   " . $url . "\n"
+                                . "[/info]";
+        //delete
+        } else if(trim($headers["X-Github-Event"]) == "delete") {
+            $message = $message . "[" . $data["ref_type"] == "branch" ? "Branch" : "Tag" . " was deleted]\n";
+            $message = $message . "[info]"
+                                . $data["ref"] . " was deleted by " . $data["sender"]["login"] . ".\n"
+                                . "[/info]";
+        //pull_request
+        } else if(trim($headers["X-Github-Event"]) == "pull_request") {
+            $merged = (boolean)$data["pull_request"]["_links"]["merged"];
+            $action = "";
+            if($data["action"] == "closed" && $merged) {
+                $action = "closed with merged";
+            } else if($data["action"] == "closed" && !$merged) {
+                $action = "closed with unmerged commits";
+            } else {
+                $action = $data["action"];
+            }
+            $message = $message . "[Pull Request]\n";
+            $message = $message . "[info]"
+                                . "Pull Request " . $action . " by " . $data["pull_request"]["user"]["login"] . ".\n"
+                                . "\n"
+                                . $data["pull_request"]["body"] . "\n"
+                                . "\n"
+                                . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
+                                . $data["pull_request"]["html_url"] . "\n"
+                                . "[/info]";
+        //pull_request_review
+        } else if(trim($headers["X-Github-Event"]) == "pull_request_review") {
+            $message = $message . "[Pull Request Review]\n"
+                                . "[info]"
+                                . "Pull Request Review " . $data["action"] . " by " . $data["review"]["user"]["login"] . "\n"
+                                . "\n"
+                                . $data["review"]["body"] . "\n"
+                                . "\n"
+                                . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
+                                . $data["pull_request"]["html_url"] . "\n"
+                                . "[/info]";
+        //ping(test)
+        } else if(trim($headers["X-Github-Event"]) == "ping") {
+            $message = $message . "[Test送信]";
+        } else {
+            $message = $message . "[" . trim($headers["X-Github-Event"]) . "]";
+        }
 
         $query = http_build_query([
             "body" => $message,
