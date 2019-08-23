@@ -1,3 +1,41 @@
+# このプロジェクトについて
+
+- このプロジェクトはGitHubにWebhookしてChatworkに通知を送るための処理をPHPフレームワーク，Slim/Skeletonで実装したものです．
+- 配布用に作っているプログラムではないため，保守性の高いソースではないですが，問題なく動作することは確認済みです．
+- 自由に利用してください．
+
+# 環境情報
+
+- Slim4が動かせる環境
+- [direnv](https://github.com/direnv/direnv)がインストールされていること．
+
+# 環境構築
+
+~~~
+git clone https://github.com/yuyaseki/chatwork-from-github.git
+
+composer install
+
+cp .env.example .env
+
+chmod 777 logs
+~~~
+
+# 環境設定
+
+- .env内の設定を適切に変更する．
+    - TIME_ZONE: Time/Zoneを指定
+    - CHATWORK_TOKEN: Chatwork APIを利用するためのトークンを指定
+    - CHATWORK_ROOM_ID: 通知先のルームのroom_idを指定
+
+# GitHubの設定
+
+- GitHubの通知が必要なリポジトリのSettingsからWebhookを設定．
+
+以上の設定で通知がChatworkに届くようになるはずです．
+
+※Slimについての説明は以下をご確認ください．
+
 # Slim Framework 4 Skeleton Application
 
 Use this skeleton application to quickly setup and start working on a new Slim Framework 4 application. This application uses the latest Slim 4 with Slim PSR-7 implementation and PHP-DI container implementation. It also uses the Monolog logger.
