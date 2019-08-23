@@ -54,30 +54,36 @@ class ChatworkController {
         $token = $settings["token"];
         $room_id = $settings["room_id"];
 
-        $message = "[toall]\n";
-        $message = $message . "お試し中です\n\n";
-        $message = $message . "push, create, delete, pull_request, pull_request_reviewは必要だと思われる詳細を表示しています．それ以外のEventについては，現在Event名のみ記載しています．今後変更の可能性あり．\n\n";
+        $message = "[toall]\n\n";
+
+        $message = $message . "【" . $data["repository"]["name"] . "】\n";
+        $message = $message . "Description: " . $data["repository"]["description"] . "\n";
+        $message = $message . $data["repository"]["html_url"] . "\n\n";
 
         //push
         if(trim($headers["X-Github-Event"]) == "push") {
             $message = $message . "[Push]\n";
+            $message = $message . "※リモートでのmergeなどもpush扱いです．\n";
+            $message = $message . "Compareはブランチが削除されている場合無効です．\n";
             $message = $message . "[info]"
                                 . "Push by " . $data["sender"]["login"] . ".\n"
+                                . "\n"
                                 . "git ref:   " . $data["ref"] . "\n"
                                 . "Compare:   " . $data["compare"] . "\n"
                                 . "[/info]";
         //create
         } else if(trim($headers["X-Github-Event"]) == "create") {
             $url = $data["repository"]["html_url"] . "/tree/" . $data["ref"];
-            $message = $message . "[" . $data["ref_type"] == "branch" ? "Branch" : "Tag" . " was created]\n";
+            $message = $message . "[" . ($data["ref_type"] == "branch" ? "Branch" : "Tag") . " created]\n";
             $message = $message . "[info]"
                                 . $data["ref"] . " was created by " . $data["sender"]["login"] . ".\n"
+                                . "\n"
                                 . "git ref:   " . $data["ref"] . "\n"
-                                . "URL:   " . $url . "\n"
+                                . $url . "\n"
                                 . "[/info]";
         //delete
         } else if(trim($headers["X-Github-Event"]) == "delete") {
-            $message = $message . "[" . $data["ref_type"] == "branch" ? "Branch" : "Tag" . " was deleted]\n";
+            $message = $message . "[" . ($data["ref_type"] == "branch" ? "Branch" : "Tag") . " deleted]\n";
             $message = $message . "[info]"
                                 . $data["ref"] . " was deleted by " . $data["sender"]["login"] . ".\n"
                                 . "[/info]";
@@ -93,10 +99,11 @@ class ChatworkController {
                 $action = $data["action"];
             }
             $message = $message . "[Pull Request]\n";
+            $message = $message . $data["action"] . "\n";
             $message = $message . "[info]"
                                 . "Pull Request " . $action . " by " . $data["pull_request"]["user"]["login"] . ".\n"
                                 . "\n"
-                                . $data["pull_request"]["body"] . "\n"
+                                . "Message: " . $data["pull_request"]["body"] . "\n"
                                 . "\n"
                                 . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
                                 . $data["pull_request"]["html_url"] . "\n"
@@ -104,6 +111,7 @@ class ChatworkController {
         //pull_request_review
         } else if(trim($headers["X-Github-Event"]) == "pull_request_review") {
             $message = $message . "[Pull Request Review]\n"
+                                . $data["action"] . "\n"
                                 . "[info]"
                                 . "Pull Request Review " . $data["action"] . " by " . $data["review"]["user"]["login"] . "\n"
                                 . "\n"
@@ -112,11 +120,33 @@ class ChatworkController {
                                 . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
                                 . $data["pull_request"]["html_url"] . "\n"
                                 . "[/info]";
+        //gollum
+        } else if(trim($headers["X-Github-Event"]) == "gollum") {
+            $message = $message . "[Gollum]\n"
+                                . "[info]"
+                                . "Wiki page \"" . $data["pages"][0]["page_name"] . "\" " . $data["pages"][0]["action"] . " by " . $data["sender"]["login"] . "\n"
+                                . "\n"
+                                . "Page Name: " . $data["pages"][0]["page_name"]. "\n"
+                                . "Summary: " . $data["pages"][0]["summary"]. "\n"
+                                . "\n"
+                                . $data["pages"][0]["html_url"] . "\n"
+                                . "[/info]";
+        //issue_comment
+        } else if(trim($headers["X-Github-Event"]) == "issue_comment") {
+            $message = $message . "[Issue Comment]\n"
+                                . "[info]"
+                                . "Issue Comment " . $data["action"] . " " . $data["issue"]["user"]["login"] . "\n"
+                                . "\n"
+                                . "#" . $data["issue"]["number"] . " " . $data["issue"]["title"] . "\n"
+                                . $data["issue"]["html_url"] . "\n"
+                                . "[/info]";
         //ping(test)
         } else if(trim($headers["X-Github-Event"]) == "ping") {
             $message = $message . "[Test送信]";
+        //
         } else {
-            $message = $message . "[" . trim($headers["X-Github-Event"]) . "]";
+            $message = $message . "[" . trim($headers["X-Github-Event"]) . "]\n"
+                                . "通知の必要はあるか．．．";
         }
 
         $query = http_build_query([
