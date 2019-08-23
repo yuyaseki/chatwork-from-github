@@ -16,6 +16,8 @@ if (is_readable($dot_env)) {
     $dotenv->load();
 }
 
+date_default_timezone_set(getenv("TIME_ZONE"));
+
 // Instantiate PHP-DI ContainerBuilder
 $containerBuilder = new ContainerBuilder();
 
