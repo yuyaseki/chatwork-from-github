@@ -62,6 +62,8 @@ class ChatworkController {
 
         //push
         if(trim($headers["X-Github-Event"]) == "push") {
+            return true;
+            /*
             $message = $message . "[Push]\n";
             $message = $message . "※リモートでのmergeなどもpush扱いです．\n";
             $message = $message . "Compareはブランチが削除されている場合無効です．\n";
@@ -71,8 +73,11 @@ class ChatworkController {
                                 . "git ref:   " . $data["ref"] . "\n"
                                 . "Compare:   " . $data["compare"] . "\n"
                                 . "[/info]";
+            */
         //create
         } else if(trim($headers["X-Github-Event"]) == "create") {
+            return true;
+            /*
             $url = $data["repository"]["html_url"] . "/tree/" . $data["ref"];
             $message = $message . "[" . ($data["ref_type"] == "branch" ? "Branch" : "Tag") . " created]\n";
             $message = $message . "[info]"
@@ -81,15 +86,19 @@ class ChatworkController {
                                 . "git ref:   " . $data["ref"] . "\n"
                                 . $url . "\n"
                                 . "[/info]";
+            */
         //delete
         } else if(trim($headers["X-Github-Event"]) == "delete") {
+            return true;
+            /*
             $message = $message . "[" . ($data["ref_type"] == "branch" ? "Branch" : "Tag") . " deleted]\n";
             $message = $message . "[info]"
                                 . $data["ref"] . " was deleted by " . $data["sender"]["login"] . ".\n"
                                 . "[/info]";
+            */
         //pull_request
         } else if(trim($headers["X-Github-Event"]) == "pull_request") {
-            $merged = (boolean)$data["pull_request"]["_links"]["merged"];
+            $merged = $data["pull_request"]["merged"];
             $action = "";
             if($data["action"] == "closed" && $merged) {
                 $action = "closed with merged";
