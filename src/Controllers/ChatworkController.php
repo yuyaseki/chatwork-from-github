@@ -49,102 +49,37 @@ class ChatworkController {
 
         global $app;
         $container = $app->getContainer();
-        $settings = $container->get('settings')['chatwork'];
+        $chatwork = $container->get('chatwork');
 
-        $token = $settings["token"];
-        $room_id = $settings["room_id"];
-
-        $message = "[toall]\n\n";
+        $token = $chatwork["token"];
+        $room_id = $chatwork["room_id"];
 
         $message = $message . "【" . $data["repository"]["name"] . "】\n";
         $message = $message . "Description: " . $data["repository"]["description"] . "\n";
         $message = $message . $data["repository"]["html_url"] . "\n\n";
 
-        //push
-        if(trim($headers["X-Github-Event"]) == "push") {
-            return true;
-            /*
-            $message = $message . "[Push]\n";
-            $message = $message . "※リモートでのmergeなどもpush扱いです．\n";
-            $message = $message . "Compareはブランチが削除されている場合無効です．\n";
-            $message = $message . "[info]"
-                                . "Push by " . $data["sender"]["login"] . ".\n"
-                                . "\n"
-                                . "git ref:   " . $data["ref"] . "\n"
-                                . "Compare:   " . $data["compare"] . "\n"
-                                . "[/info]";
-            */
-        //create
-        } else if(trim($headers["X-Github-Event"]) == "create") {
-            return true;
-            /*
-            $url = $data["repository"]["html_url"] . "/tree/" . $data["ref"];
-            $message = $message . "[" . ($data["ref_type"] == "branch" ? "Branch" : "Tag") . " created]\n";
-            $message = $message . "[info]"
-                                . $data["ref"] . " was created by " . $data["sender"]["login"] . ".\n"
-                                . "\n"
-                                . "git ref:   " . $data["ref"] . "\n"
-                                . $url . "\n"
-                                . "[/info]";
-            */
-        //delete
-        } else if(trim($headers["X-Github-Event"]) == "delete") {
-            return true;
-            /*
-            $message = $message . "[" . ($data["ref_type"] == "branch" ? "Branch" : "Tag") . " deleted]\n";
-            $message = $message . "[info]"
-                                . $data["ref"] . " was deleted by " . $data["sender"]["login"] . ".\n"
-                                . "[/info]";
-            */
         //pull_request
-        } else if(trim($headers["X-Github-Event"]) == "pull_request") {
-            $merged = $data["pull_request"]["merged"];
-            $action = "";
-            if($data["action"] == "closed" && $merged) {
-                $action = "closed with merged";
-            } else if($data["action"] == "closed" && !$merged) {
-                $action = "closed with unmerged commits";
-            } else {
-                $action = $data["action"];
-            }
-            $message = $message . "[Pull Request]\n";
-            $message = $message . $data["action"] . "\n";
-            $message = $message . "[info]"
-                                . "Pull Request " . $action . " by " . $data["pull_request"]["user"]["login"] . ".\n"
-                                . "\n"
-                                . "Message: " . $data["pull_request"]["body"] . "\n"
-                                . "\n"
-                                . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
-                                . $data["pull_request"]["html_url"] . "\n"
-                                . "[/info]";
+        if(trim($headers["X-Github-Event"]) == "pull_request") {
+            $message = self::getPullRequestMessage($message, $data, $chatwork["to"], $logger);
+            $logger->info($message);
+
         //pull_request_review
         } else if(trim($headers["X-Github-Event"]) == "pull_request_review") {
-            $message = $message . "[Pull Request Review]\n"
-                                . $data["action"] . "\n"
-                                . "[info]"
-                                . "Pull Request Review " . $data["action"] . " by " . $data["review"]["user"]["login"] . "\n"
-                                . "\n"
-                                . $data["review"]["body"] . "\n"
-                                . "\n"
-                                . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
-                                . $data["pull_request"]["html_url"] . "\n"
-                                . "[/info]";
+            $message = self::getPullRequestReviewMessage($message, $data, $logger);
+
         //pull_request_review_comment
         } else if(trim($headers["X-Github-Event"]) == "pull_request_review_comment") {
-            $message = $message . "[Pull Request Review Comment]\n"
-                                . $data["action"] . "\n"
-                                . "[info]"
-                                . "Pull Request Review Comment " . $data["action"] . " by " . $data["comment"]["user"]["login"] . "\n"
+
+            $message = self::getPullRequestReviewCommentMessage($message, $data, $logger);
+
+        //issue_comment
+        } else if(trim($headers["X-Github-Event"]) == "issue_comment") {
+            $message = $message . "[Issue Comment]\n"
+                                . "Issue Comment " . $data["action"] . " " . $data["issue"]["user"]["login"] . "\n"
                                 . "\n"
-                                . $data["comment"]["body"] . "\n"
-                                . $data["comment"]["html_url"] . "\n"
-                                . "\n"
-                                . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
-                                . $data["comment"]["html_url"] . "\n"
-                                . "[/info]"
-                                . "[code]"
-                                . $data["comment"]["diff_hunk"]
-                                . "[/code]";
+                                . "#" . $data["issue"]["number"] . " " . $data["issue"]["title"] . "\n"
+                                . $data["issue"]["html_url"];
+
         //gollum
         } else if(trim($headers["X-Github-Event"]) == "gollum") {
             $message = $message . "[Gollum]\n"
@@ -156,22 +91,14 @@ class ChatworkController {
                                 . "\n"
                                 . $data["pages"][0]["html_url"] . "\n"
                                 . "[/info]";
-        //issue_comment
-        } else if(trim($headers["X-Github-Event"]) == "issue_comment") {
-            $message = $message . "[Issue Comment]\n"
-                                . "[info]"
-                                . "Issue Comment " . $data["action"] . " " . $data["issue"]["user"]["login"] . "\n"
-                                . "\n"
-                                . "#" . $data["issue"]["number"] . " " . $data["issue"]["title"] . "\n"
-                                . $data["issue"]["html_url"] . "\n"
-                                . "[/info]";
-        //ping(test)
+
+        // ping(test)
         } else if(trim($headers["X-Github-Event"]) == "ping") {
             $message = $message . "[Test送信]";
-        //
+
+        // Other
         } else {
-            $message = $message . "[" . trim($headers["X-Github-Event"]) . "]\n"
-                                . "通知の必要はあるか．．．";
+            return true;
         }
 
         $query = http_build_query([
@@ -196,16 +123,121 @@ class ChatworkController {
         ];
 
         $result = self::execute($url, $options);
+    }
 
-        ob_start();
-	    var_dump($result["header"]);
-	    $header = ob_get_contents();
-	    ob_end_clean();
-        ob_start();
-	    var_dump($result["body"]);
-	    $body = ob_get_contents();
-	    ob_end_clean();
-        $logger->addInfo($body);
+    /**
+     * Pull Request
+     *
+     */
+    private static function getPullRequestMessage($message, $data, $to, $logger) {
+
+        $merged = $data["pull_request"]["merged"];
+
+        $action = "";
+        if($data["action"] == "closed" && $merged) {
+            $action = "closed with merged";
+        } else if($data["action"] == "closed" && !$merged) {
+            $action = "closed with unmerged commits";
+        } else {
+            $action = $data["action"];
+        }
+
+        $is_team = false;
+        $requested_reviewer = "";
+        $to_notation = "";
+        if($action == "review_requested" || $action == "review_request_removed") {
+            if(array_key_exists("requested_reviewer", $data)) {
+                $is_team = false;
+            } else if(array_key_exists("requested_team", $data)) {
+                $is_team = true;
+            }
+            if(!$is_team && array_key_exists($data["requested_reviewer"]["login"], $to)) {
+                $requested_reviewer = $data["requested_reviewer"]["login"];
+                $to_notation = "[To:" . $to[$requested_reviewer]["chatwork_account_id"] . "] " . $to[$requested_reviewer]["chatwork_account_name"] . "\n";
+            } else if($is_team) {
+                $requested_reviewer = $data["requested_team"]["name"];
+                $to_notation = "";
+            } else {
+                $to_notation = "";
+            }
+        }
+
+        $assignee = "";
+        if($action == "assigned" || $action == "unassigned") {
+            $assignee = $data["assignee"]["login"];
+            if(array_key_exists($assignee, $to)) {
+                $to_notation = "[To:" . $to[$assignee]["chatwork_account_id"] . "] " . $to[$assignee]["chatwork_account_name"] . "\n";
+            } else {
+                $to_notation = "";
+            }
+        }
+
+        $message = $message . "[Pull Request]\n";
+
+        if($action == "review_requested") {
+            $message = $message . $to_notation;
+            $message = $message . $requested_reviewer . " " . ($is_team ? "チーム" : "さん") . "がレビュアーに指定されました．";
+        } else if($action == "review_request_removed") {
+            $message = $message . $to_notation;
+            $message = $message . $requested_reviewer . " " . ($is_team ? "チーム" : "さん") . "がレビュアーから除外されました．";
+        } else if($action == "assigned") {
+            $message = $message . $to_notation;
+            $message = $message . $assignee . " さんが責任者に指名されました．";
+        } else if($action == "unassigned") {
+            $message = $message . $to_notation;
+            $message = $message . $assignee . " さんが責任者から除外されました．";
+        } else {
+            $message = $message . "Pull Request " . $action . " by " . $data["pull_request"]["user"]["login"];
+        }
+
+        $message = $message . "\n\n";
+        $message = $message . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
+                            . $data["pull_request"]["html_url"];
+
+        if($action == "opened") {
+            $message = $message . "\n
+                                . [info]"
+                                . "Message: " . $data["pull_request"]["body"] . "\n"
+                                . "[/info]";
+        }
+
+        return $message;
+    }
+
+    /**
+     * Pull Request Review
+     *
+     */
+    private static function getPullRequestReviewMessage($message, $data, $logger) {
+
+            $message = $message . "[Pull Request Review]\n"
+                                . "Pull Request Review " . $data["action"] . " by " . $data["review"]["user"]["login"] . "\n\n"
+                                . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
+                                . $data["pull_request"]["html_url"];
+
+        return $message;
+    }
+
+    /**
+     * Pull Request Review Comment
+     *
+     */
+    private static function getPullRequestReviewCommentMessage($message, $data, $logger) {
+
+        $message = $message . "[Pull Request Review Comment]\n"
+                            . "Pull Request Review Comment " . $data["action"] . " by " . $data["comment"]["user"]["login"] . "\n\n"
+                            . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
+                            . "Pull Request: " . $data["comment"]["pull_request_url"] . "\n";
+
+        if($data["action"] != "deleted") {
+            $message = $message . "Review Comment: " . $data["comment"]["html_url"];
+        }
+
+        $message = $message . "[info]"
+                            . $data["comment"]["body"]
+                            . "[/info]";
+
+        return $message;
     }
 
     private static function execute($url, $options) {

@@ -26,7 +26,9 @@ chmod 777 logs
 - .env内の設定を適切に変更する．
     - TIME_ZONE: Time/Zoneを指定
     - CHATWORK_TOKEN: Chatwork APIを利用するためのトークンを指定
-    - CHATWORK_ROOM_ID: 通知先のルームのroom_idを指定
+    - CHATWORK_ROOM_ID: 通知先のルームのroom_idを指定7
+
+- app/chatwork_example.php を app/chatwork.php にリネームし，github usernameの設定とchatwork account idのペアを設定する．
 
 # GitHubの設定
 
