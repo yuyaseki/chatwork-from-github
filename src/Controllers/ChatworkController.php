@@ -210,10 +210,10 @@ class ChatworkController {
      */
     private static function getPullRequestReviewMessage($message, $data, $logger) {
 
-            $message = $message . "[Pull Request Review]\n"
-                                . "Pull Request Review " . $data["action"] . " by " . $data["review"]["user"]["login"] . "\n\n"
-                                . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
-                                . $data["pull_request"]["html_url"];
+        $message = $message . "[Pull Request Review]\n"
+                            . "Pull Request Review " . $data["action"] . " by " . $data["review"]["user"]["login"] . "\n\n"
+                            . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
+                            . $data["pull_request"]["html_url"];
 
         return $message;
     }
