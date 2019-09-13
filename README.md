@@ -4,6 +4,10 @@
 - 配布用に作っているプログラムではないため，保守性の高いソースではないですが，問題なく動作することは確認済みです．
 - 自由に利用してください．
 
+# LICENSE
+
+- This software is released under the MIT License, see [LICENSE.md](LICENSE.md).
+
 # 環境情報
 
 - Slim4が動かせる環境
@@ -17,6 +21,7 @@ git clone https://github.com/yuyaseki/chatwork-from-github.git
 composer install
 
 cp .env.example .env
+cp app/chatwork_example.php app/chatwork.php
 
 chmod 777 logs
 ~~~
@@ -24,17 +29,16 @@ chmod 777 logs
 # 環境設定
 
 - .env内の設定を適切に変更する．
-    - TIME_ZONE: Time/Zoneを指定
-    - CHATWORK_TOKEN: Chatwork APIを利用するためのトークンを指定
-    - CHATWORK_ROOM_ID: 通知先のルームのroom_idを指定7
 
-- app/chatwork_example.php を app/chatwork.php にリネームし，github usernameの設定とchatwork account idのペアを設定する．
+- app/chatwork.phpの設定を適切に変更する．
 
 # GitHubの設定
 
 - GitHubの通知が必要なリポジトリのSettingsからWebhookを設定．
 
 以上の設定で通知がChatworkに届くようになるはずです．
+
+# その他
 
 ※Slimについての説明は以下をご確認ください．
 
