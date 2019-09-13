@@ -6,3 +6,4 @@
 /var/cache/*
 
 .env
+/app/chatwork.php

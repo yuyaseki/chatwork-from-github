@@ -8,12 +8,21 @@ use Psr\Http\Message\ResponseInterface;
 use Slim\Http\Request;
 use Slim\Http\Response;
 
+use App\Models\GitHubToChatwork;
+
 class ChatworkController {
 
+
+    /**
+     * Main Action.
+     *
+     */
     public function index(ServerRequestInterface $request, ResponseInterface $response) {
 
         global $app;
         $container = $app->getContainer();
+
+        // Logの設定
         $settings = $container->get('settings')['logger'];
         $formatter = new \Monolog\Formatter\LineFormatter(null, null, true, true);
         $stream = new \Monolog\Handler\RotatingFileHandler($settings["path"], 30, $settings["level"]);
@@ -21,158 +30,68 @@ class ChatworkController {
         $logger = new \Monolog\Logger($settings["name"]);
         $logger->pushHandler($stream);
 
-        $logger->addInfo("***************************************");
-        $logger->addInfo("***************************************");
+        // Chatworkの設定
+        $chatwork = $container->get('chatwork');
 
-        $tmp = $request->getHeaders();
+        $logger->addInfo("******************************************************************************************************************");
+
+        $header = $request->getHeaders();
+	    $body = json_decode($request->getBody(), true);
+
         $headers = [];
-        foreach ($tmp as $name => $values) {
-            $logger->addInfo($name . ": " . implode(", ", $values));
-            $headers[$name] = implode(", ", $values);
+        $event = "";
+        foreach ($header as $name => $value) {
+            $headers[$name] = trim(implode(", ", $value));
+            if($name == "X-Github-Event") {
+                $event = trim(implode(", ", $value));
+            }
         }
 
-	    $arr = json_decode($request->getBody(), true);
         ob_start();
-	    var_dump($arr);
+	    var_dump($headers);
 	    $data = ob_get_contents();
 	    ob_end_clean();
         $logger->addInfo($data);
 
-        self::pushChatwork($headers, $arr, $logger);
+        ob_start();
+	    var_dump($body);
+	    $data = ob_get_contents();
+	    ob_end_clean();
+        $logger->addInfo($data);
+
+
+        self::pushChatwork($event, $body, $logger, $chatwork);
 
         $response->getBody()->write(json_encode(["success"]));
 
         return $response;
     }
 
-    private static function pushChatwork($headers, $data, $logger) {
+    /**
+     * GitHubのEventから必要情報を読み取り，Chatworkに通知する
+     *
+     */
+    private static function pushChatwork($event, $data, $logger, $chatwork) {
 
-        global $app;
-        $container = $app->getContainer();
-        $settings = $container->get('settings')['chatwork'];
+        $token = $chatwork["token"];
+        $room_id_list = [];
+        $room_id_list[] = $chatwork["room_id"];
 
-        $token = $settings["token"];
-        $room_id = $settings["room_id"];
 
-        $message = "[toall]\n\n";
+        $info = GitHubToChatwork::getInfo($event, $data, $logger, $chatwork["to"]);
+        $message = $info["message"];
+        $room_id_list = array_merge($room_id_list, $info["room_id_list"]);
 
-        $message = $message . "【" . $data["repository"]["name"] . "】\n";
-        $message = $message . "Description: " . $data["repository"]["description"] . "\n";
-        $message = $message . $data["repository"]["html_url"] . "\n\n";
+        if($message == "") return true;
 
-        //push
-        if(trim($headers["X-Github-Event"]) == "push") {
-            return true;
-            /*
-            $message = $message . "[Push]\n";
-            $message = $message . "※リモートでのmergeなどもpush扱いです．\n";
-            $message = $message . "Compareはブランチが削除されている場合無効です．\n";
-            $message = $message . "[info]"
-                                . "Push by " . $data["sender"]["login"] . ".\n"
-                                . "\n"
-                                . "git ref:   " . $data["ref"] . "\n"
-                                . "Compare:   " . $data["compare"] . "\n"
-                                . "[/info]";
-            */
-        //create
-        } else if(trim($headers["X-Github-Event"]) == "create") {
-            return true;
-            /*
-            $url = $data["repository"]["html_url"] . "/tree/" . $data["ref"];
-            $message = $message . "[" . ($data["ref_type"] == "branch" ? "Branch" : "Tag") . " created]\n";
-            $message = $message . "[info]"
-                                . $data["ref"] . " was created by " . $data["sender"]["login"] . ".\n"
-                                . "\n"
-                                . "git ref:   " . $data["ref"] . "\n"
-                                . $url . "\n"
-                                . "[/info]";
-            */
-        //delete
-        } else if(trim($headers["X-Github-Event"]) == "delete") {
-            return true;
-            /*
-            $message = $message . "[" . ($data["ref_type"] == "branch" ? "Branch" : "Tag") . " deleted]\n";
-            $message = $message . "[info]"
-                                . $data["ref"] . " was deleted by " . $data["sender"]["login"] . ".\n"
-                                . "[/info]";
-            */
-        //pull_request
-        } else if(trim($headers["X-Github-Event"]) == "pull_request") {
-            $merged = $data["pull_request"]["merged"];
-            $action = "";
-            if($data["action"] == "closed" && $merged) {
-                $action = "closed with merged";
-            } else if($data["action"] == "closed" && !$merged) {
-                $action = "closed with unmerged commits";
-            } else {
-                $action = $data["action"];
-            }
-            $message = $message . "[Pull Request]\n";
-            $message = $message . $data["action"] . "\n";
-            $message = $message . "[info]"
-                                . "Pull Request " . $action . " by " . $data["pull_request"]["user"]["login"] . ".\n"
-                                . "\n"
-                                . "Message: " . $data["pull_request"]["body"] . "\n"
-                                . "\n"
-                                . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
-                                . $data["pull_request"]["html_url"] . "\n"
-                                . "[/info]";
-        //pull_request_review
-        } else if(trim($headers["X-Github-Event"]) == "pull_request_review") {
-            $message = $message . "[Pull Request Review]\n"
-                                . $data["action"] . "\n"
-                                . "[info]"
-                                . "Pull Request Review " . $data["action"] . " by " . $data["review"]["user"]["login"] . "\n"
-                                . "\n"
-                                . $data["review"]["body"] . "\n"
-                                . "\n"
-                                . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
-                                . $data["pull_request"]["html_url"] . "\n"
-                                . "[/info]";
-        //pull_request_review_comment
-        } else if(trim($headers["X-Github-Event"]) == "pull_request_review_comment") {
-            $message = $message . "[Pull Request Review Comment]\n"
-                                . $data["action"] . "\n"
-                                . "[info]"
-                                . "Pull Request Review Comment " . $data["action"] . " by " . $data["comment"]["user"]["login"] . "\n"
-                                . "\n"
-                                . $data["comment"]["body"] . "\n"
-                                . $data["comment"]["html_url"] . "\n"
-                                . "\n"
-                                . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
-                                . $data["comment"]["html_url"] . "\n"
-                                . "[/info]"
-                                . "[code]"
-                                . $data["comment"]["diff_hunk"]
-                                . "[/code]";
-        //gollum
-        } else if(trim($headers["X-Github-Event"]) == "gollum") {
-            $message = $message . "[Gollum]\n"
-                                . "[info]"
-                                . "Wiki page \"" . $data["pages"][0]["page_name"] . "\" " . $data["pages"][0]["action"] . " by " . $data["sender"]["login"] . "\n"
-                                . "\n"
-                                . "Page Name: " . $data["pages"][0]["page_name"]. "\n"
-                                . "Summary: " . $data["pages"][0]["summary"]. "\n"
-                                . "\n"
-                                . $data["pages"][0]["html_url"] . "\n"
-                                . "[/info]";
-        //issue_comment
-        } else if(trim($headers["X-Github-Event"]) == "issue_comment") {
-            $message = $message . "[Issue Comment]\n"
-                                . "[info]"
-                                . "Issue Comment " . $data["action"] . " " . $data["issue"]["user"]["login"] . "\n"
-                                . "\n"
-                                . "#" . $data["issue"]["number"] . " " . $data["issue"]["title"] . "\n"
-                                . $data["issue"]["html_url"] . "\n"
-                                . "[/info]";
-        //ping(test)
-        } else if(trim($headers["X-Github-Event"]) == "ping") {
-            $message = $message . "[Test送信]";
-        //
-        } else {
-            $message = $message . "[" . trim($headers["X-Github-Event"]) . "]\n"
-                                . "通知の必要はあるか．．．";
-        }
+        self::executeApi($logger, $token, $room_id_list, $message);
+    }
+
+    /**
+     * Chatwork APIの実行
+     *
+     */
+    private static function executeApi($logger, $token, $room_id_list, $message) {
 
         $query = http_build_query([
             "body" => $message,
@@ -185,8 +104,6 @@ class ChatworkController {
             'Content-Length: ' . strlen($query)
         ];
 
-        $url = "https://api.chatwork.com/v2/rooms/" . $room_id . "/messages";
-
         $options = [
             CURLOPT_RETURNTRANSFER  => true,
             CURLOPT_POST            => true,
@@ -195,19 +112,17 @@ class ChatworkController {
             CURLOPT_POSTFIELDS      => $query
         ];
 
-        $result = self::execute($url, $options);
-
-        ob_start();
-	    var_dump($result["header"]);
-	    $header = ob_get_contents();
-	    ob_end_clean();
-        ob_start();
-	    var_dump($result["body"]);
-	    $body = ob_get_contents();
-	    ob_end_clean();
-        $logger->addInfo($body);
+        foreach($room_id_list as $room_id) {
+            if($room_id == "") continue;
+            $url = "https://api.chatwork.com/v2/rooms/" . $room_id . "/messages";
+            $result = self::execute($url, $options);
+        }
     }
 
+    /**
+     * Execute
+     *
+     */
     private static function execute($url, $options) {
 
         try {

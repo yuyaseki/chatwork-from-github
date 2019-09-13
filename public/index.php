@@ -29,6 +29,9 @@ if (false) { // Should be set to true in production
 $settings = require __DIR__ . '/../app/settings.php';
 $settings($containerBuilder);
 
+$chatwork = require __DIR__ . '/../app/chatwork.php';
+$chatwork($containerBuilder);
+
 // Set up dependencies
 $dependencies = require __DIR__ . '/../app/dependencies.php';
 $dependencies($containerBuilder);
