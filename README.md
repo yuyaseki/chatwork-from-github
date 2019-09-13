@@ -6,7 +6,7 @@
 
 # LICENSE
 
-- This software is released under the MIT License, see LICENSE.md.
+- This software is released under the MIT License, see [LICENSE.md](LICENSE.md).
 
 # 環境情報
 
