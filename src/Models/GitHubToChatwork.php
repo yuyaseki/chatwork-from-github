@@ -18,7 +18,7 @@ class GitHubToChatwork {
         //pull_request
         if($event == "pull_request") {
             $action = $data["action"];
-            if($action == "synchronize") {
+            if($action == "synchronize" || $action == "submitted") {
                 return true;
             }
 
@@ -27,23 +27,35 @@ class GitHubToChatwork {
 
         //pull_request_review
         } else if($event == "pull_request_review") {
-            $message = self::getPullRequestReviewMessage($message, $data, $logger);
+
+            $action = $data["action"];
+            if(action == "submitted") {
+                return true;
+            }
+
+            $message = self::getPullRequestReviewMessage($message, $action, $data, $logger);
 
         //pull_request_review_comment
         } else if($event == "pull_request_review_comment") {
 
-            $message = self::getPullRequestReviewCommentMessage($message, $data, $logger);
+            $action = $data["action"];
+
+            $message = self::getPullRequestReviewCommentMessage($message, $action, $data, $logger);
 
         //issue_comment
         } else if($event == "issue_comment") {
+
+            $action = $data["action"];
+
             $message = $message . "[Issue Comment]\n"
-                                . "Issue Comment " . $data["action"] . " " . $data["issue"]["user"]["login"] . "\n"
+                                . "Issue Comment " . $action . " " . $data["issue"]["user"]["login"] . "\n"
                                 . "\n"
                                 . "#" . $data["issue"]["number"] . " " . $data["issue"]["title"] . "\n"
                                 . $data["issue"]["html_url"];
 
         //gollum
         } else if($event == "gollum") {
+
             $message = $message . "[Gollum]\n"
                                 . "[info]"
                                 . "Wiki page \"" . $data["pages"][0]["page_name"] . "\" " . $data["pages"][0]["action"] . " by " . $data["sender"]["login"] . "\n"
@@ -148,10 +160,9 @@ class GitHubToChatwork {
         $message = $message . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
                             . $data["pull_request"]["html_url"];
 
-        if($action == "opened") {
-            $message = $message . "\n
-                                . [info]"
-                                . "Message: " . $data["pull_request"]["body"] . "\n"
+        if($action == "opened" && !is_null($data["pull_request"]["body"]) && $data["pull_request"]["body"] != "") {
+            $message = $message . "\n[info]"
+                                . $data["pull_request"]["body"] . "\n"
                                 . "[/info]";
         }
 
@@ -207,10 +218,10 @@ class GitHubToChatwork {
      * Pull Request Review
      *
      */
-    private static function getPullRequestReviewMessage($message, $data, $logger) {
+    private static function getPullRequestReviewMessage($message, $action, $data, $logger) {
 
         $message = $message . "[Pull Request Review]\n"
-                            . "Pull Request Review " . $data["action"] . " by " . $data["review"]["user"]["login"] . "\n\n"
+                            . "Pull Request Review " . $action . " by " . $data["review"]["user"]["login"] . "\n\n"
                             . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
                             . $data["pull_request"]["html_url"];
 
@@ -221,14 +232,14 @@ class GitHubToChatwork {
      * Pull Request Review Comment
      *
      */
-    private static function getPullRequestReviewCommentMessage($message, $data, $logger) {
+    private static function getPullRequestReviewCommentMessage($message, $action, $data, $logger) {
 
         $message = $message . "[Pull Request Review Comment]\n"
-                            . "Pull Request Review Comment " . $data["action"] . " by " . $data["comment"]["user"]["login"] . "\n\n"
+                            . "Pull Request Review Comment " . $action . " by " . $data["comment"]["user"]["login"] . "\n\n"
                             . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
                             . "Pull Request: " . $data["comment"]["pull_request_url"] . "\n";
 
-        if($data["action"] != "deleted") {
+        if($action != "deleted") {
             $message = $message . "Review Comment: " . $data["comment"]["html_url"];
         }
 
