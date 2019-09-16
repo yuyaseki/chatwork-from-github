@@ -9,7 +9,7 @@ class GitHubToChatwork {
 
         $room_id_list = [];
 
-        $message = $message . "[hr]\n";
+        $message = "[hr]\n";
         $message = $message . "【" . $data["repository"]["name"] . "】\n";
         $message = $message . "Description: " . $data["repository"]["description"] . "\n\n";
         //RepositoryのURLを出す意味は無い気がするので一旦コメントアウト．
