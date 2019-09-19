@@ -29,7 +29,7 @@ class GitHubToChatwork {
         } else if($event == "pull_request_review") {
 
             $action = $data["action"];
-            if(action == "submitted") {
+            if($action == "submitted") {
                 return true;
             }
 

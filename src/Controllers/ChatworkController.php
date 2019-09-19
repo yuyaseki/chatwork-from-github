@@ -80,7 +80,9 @@ class ChatworkController {
 
         $info = GitHubToChatwork::getInfo($event, $data, $logger, $chatwork["to"]);
         $message = $info["message"];
-        $room_id_list = array_merge($room_id_list, $info["room_id_list"]);
+        if(!is_null($info["room_id_list"]) && is_array($info["room_id_list"])) {
+            $room_id_list = array_merge($room_id_list, $info["room_id_list"]);
+        }
 
         if($message == "") return true;
 
