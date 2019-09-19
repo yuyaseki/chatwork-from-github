@@ -68,7 +68,7 @@ class GitHubToChatwork {
 
         // ping(test)
         } else if($event == "ping") {
-            $message = $message . "[Test送信]";
+            $message = "[hr]\n[Test送信]";
 
         // Other
         } else {
