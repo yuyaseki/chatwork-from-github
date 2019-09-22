@@ -18,7 +18,7 @@ class GitHubToChatwork {
         //pull_request
         if($event == "pull_request") {
             $action = $data["action"];
-            if($action == "synchronize" || $action == "submitted") {
+            if($action == "synchronize" || $action == "submitted" || $action == "labeled") {
                 return true;
             }
 
