@@ -237,7 +237,7 @@ class GitHubToChatwork {
         $message = $message . "[Pull Request Review Comment]\n"
                             . "Pull Request Review Comment " . $action . " by " . $data["comment"]["user"]["login"] . "\n\n"
                             . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
-                            . "Pull Request: " . $data["comment"]["pull_request_url"] . "\n";
+                            . "Pull Request: " . $data["comment"]["pull_request"]["href"] . "\n";
 
         if($action != "deleted") {
             $message = $message . "Review Comment: " . $data["comment"]["html_url"];
