@@ -29,9 +29,6 @@ class GitHubToChatwork {
         } else if($event == "pull_request_review") {
 
             $action = $data["action"];
-            if($action == "submitted") {
-                return true;
-            }
 
             $message = self::getPullRequestReviewMessage($message, $action, $data, $logger);
 
@@ -222,6 +219,7 @@ class GitHubToChatwork {
 
         $message = $message . "[Pull Request Review]\n"
                             . "Pull Request Review " . $action . " by " . $data["review"]["user"]["login"] . "\n\n"
+                            . "[info]" . $data["review"]["body"] . "\n[/info]\n"
                             . "#" . $data["pull_request"]["number"] . " " . $data["pull_request"]["title"] . "\n"
                             . $data["pull_request"]["html_url"];
 
