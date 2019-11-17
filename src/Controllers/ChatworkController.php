@@ -97,7 +97,7 @@ class ChatworkController {
 
         $query = http_build_query([
             "body" => $message,
-            "self_unread" => 1
+            "self_unread" => 0
         ]);
 
         $header = [
